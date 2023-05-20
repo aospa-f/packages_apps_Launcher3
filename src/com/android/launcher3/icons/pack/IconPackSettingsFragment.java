@@ -76,6 +76,7 @@ public final class IconPackSettingsFragment extends RadioSettingsFragment {
     @Override
     public void onResume() {
         super.onResume();
+        reloadPreferences();
         getActivity().registerReceiver(broadCastReceiver, PKG_UPDATE_INTENT);
     }
 
