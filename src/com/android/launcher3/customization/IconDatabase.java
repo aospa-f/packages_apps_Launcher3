@@ -17,7 +17,14 @@ public class IconDatabase {
     public static final String VALUE_DEFAULT = "";
 
     public static String getGlobal(Context context) {
-        return LauncherPrefs.getPrefs(context).getString(KEY_ICON_PACK, VALUE_DEFAULT);
+        try {
+            return LauncherPrefs.getPrefs(context).getString(KEY_ICON_PACK, VALUE_DEFAULT);
+        } catch (IllegalStateException e) {
+            // Credential-encrypted storage is unavailable before the user unlocks.
+            // TouchInteractionService asks for the icon pack during boot; fall back
+            // to the default pack until the user is unlocked.
+            return VALUE_DEFAULT;
+        }
     }
 
     public static String getGlobalLabel(Context context) {
