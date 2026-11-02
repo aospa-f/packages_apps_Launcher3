@@ -203,7 +203,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
      */
     public static final int STATUS_BAR_TRANSITION_PRE_DELAY = 96;
 
-    public static final long APP_LAUNCH_DURATION = 380;
+    public static final long APP_LAUNCH_DURATION = 500;
 
     private static final long APP_LAUNCH_ALPHA_DURATION = 50;
     private static final long APP_LAUNCH_ALPHA_START_DELAY = 25;
@@ -219,7 +219,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
     public static final int RECENTS_LAUNCH_DURATION = 336;
     private static final int LAUNCHER_RESUME_START_DELAY = 100;
-    private static final int CLOSING_TRANSITION_DURATION_MS = 270;
+    private static final int CLOSING_TRANSITION_DURATION_MS = 250;
     public static final int SPLIT_LAUNCH_DURATION = 370;
     public static final int SPLIT_DIVIDER_ANIM_DURATION = 100;
 
@@ -241,36 +241,6 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
     private static final float MAX_SCRIM_ALPHA_DARK = 0.8f;
     private static final float MAX_SCRIM_ALPHA_LIGHT = 0.2f;
-
-    /**
-     * Damped-harmonic-oscillator interpolator for a subtle OEM-style spring bounce.
-     */
-    private static final class SpringInterpolator implements Interpolator {
-        private static final int TABLE_SIZE = 256;
-        private final float[] mTable = new float[TABLE_SIZE];
-
-        SpringInterpolator(double dampingRatio, double numOfCycles) {
-            double wn = numOfCycles * 2 * Math.PI;
-            double dSq = 1 - dampingRatio * dampingRatio;
-            double wd = wn * Math.sqrt(Math.max(1e-9, dSq));
-            for (int i = 0; i < TABLE_SIZE; i++) {
-                double t = (double) i / (TABLE_SIZE - 1);
-                double envelope = Math.exp(-dampingRatio * wn * t);
-                mTable[i] = (float) (1.0 - envelope * (
-                        Math.cos(wd * t) + (dampingRatio * wn / wd) * Math.sin(wd * t)));
-            }
-        }
-
-        @Override
-        public float getInterpolation(float input) {
-            if (input <= 0f) return mTable[0];
-            if (input >= 1f) return mTable[TABLE_SIZE - 1];
-            float idx = input * (TABLE_SIZE - 1);
-            int lo = (int) idx;
-            float frac = idx - lo;
-            return mTable[lo] + frac * (mTable[lo + 1] - mTable[lo]);
-        }
-    }
 
     private final RunnableList mCleanupTask = new RunnableList();
     protected final QuickstepLauncher mLauncher;
@@ -392,7 +362,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
         mOpeningXInterpolator = AnimationUtils.loadInterpolator(
                 launcher, R.interpolator.app_open_x);
-        mOpeningInterpolator = new SpringInterpolator(0.65, 1.0);
+        mOpeningInterpolator = AnimationUtils.loadInterpolator(
+                launcher, R.interpolator.emphasized_interpolator);
         mLatencyTracker = LatencyTracker.getInstance(launcher);
 
         mMaxBlurRadius = res.getDimensionPixelSize(
@@ -993,9 +964,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
         final float finalShadowRadius = appTargetsAreTranslucent ? 0 : mMaxShadowRadius;
 
         MultiValueUpdateListener listener = new MultiValueUpdateListener(mOpeningInterpolator) {
-            // Horizontal translation stays flat so it settles with the vertical axis.
-            FloatProp mDx = new FloatProp(0, prop.dX, DECELERATE_1_5);
-            FloatProp mDy = new FloatProp(0, prop.dY, DECELERATE_1_5);
+            FloatProp mDx = new FloatProp(0, prop.dX, mOpeningXInterpolator);
+            FloatProp mDy = new FloatProp(0, prop.dY);
 
             FloatProp mIconScaleToFitScreen = new FloatProp(prop.initialAppIconScale,
                     prop.finalAppIconScale);
@@ -1003,21 +973,14 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                     clampToDuration(LINEAR, APP_LAUNCH_ALPHA_START_DELAY, APP_LAUNCH_ALPHA_DURATION,
                             APP_LAUNCH_DURATION));
 
-            // Only the icon-grow scale gets the spring bounce. Corner radius, shadow and
-            // crop rect stay flat so overshoot does not wobble the visible window edges.
             FloatProp mWindowRadius =
-                    new FloatProp(initialWindowRadius, getWindowCornerRadius(mLauncher),
-                            DECELERATE_1_5);
-            FloatProp mShadowRadius = new FloatProp(0, finalShadowRadius, DECELERATE_1_5);
+                    new FloatProp(initialWindowRadius, getWindowCornerRadius(mLauncher));
+            FloatProp mShadowRadius = new FloatProp(0, finalShadowRadius);
 
-            FloatProp mCropRectCenterX = new FloatProp(prop.cropCenterXStart, prop.cropCenterXEnd,
-                    DECELERATE_1_5);
-            FloatProp mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd,
-                    DECELERATE_1_5);
-            FloatProp mCropRectWidth = new FloatProp(prop.cropWidthStart, prop.cropWidthEnd,
-                    DECELERATE_1_5);
-            FloatProp mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd,
-                    DECELERATE_1_5);
+            FloatProp mCropRectCenterX = new FloatProp(prop.cropCenterXStart, prop.cropCenterXEnd);
+            FloatProp mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd);
+            FloatProp mCropRectWidth = new FloatProp(prop.cropWidthStart, prop.cropWidthEnd);
+            FloatProp mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd);
 
             FloatProp mNavFadeOut = new FloatProp(1f, 0f, clampToDuration(
                     NAV_FADE_OUT_INTERPOLATOR, 0, ANIMATION_NAV_FADE_OUT_DURATION,
@@ -1026,14 +989,8 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                     NAV_FADE_IN_INTERPOLATOR, ANIMATION_DELAY_NAV_FADE_IN,
                     ANIMATION_NAV_FADE_IN_DURATION, APP_LAUNCH_DURATION));
 
-            // Blur fades over the first 75% of the animation so the GPU is free during
-            // the heaviest crop-rect phase at the end.
-            FloatProp mBlurRadius = new FloatProp(0f, mMaxBlurRadius, clampToDuration(
-                    DECELERATE_1_5, 0, (long) (APP_LAUNCH_DURATION * 0.75f),
-                    APP_LAUNCH_DURATION));
-            FloatProp mBlurScrimAlpha = new FloatProp(0f, scrimAlpha, clampToDuration(
-                    DECELERATE_1_5, 0, (long) (APP_LAUNCH_DURATION * 0.75f),
-                    APP_LAUNCH_DURATION));
+            FloatProp mBlurRadius = new FloatProp(0f, mMaxBlurRadius, DECELERATE_1_5);
+            FloatProp mBlurScrimAlpha = new FloatProp(0f, scrimAlpha, DECELERATE_1_5);
 
             @Override
             public void onUpdate(float percent, boolean initOnly) {
@@ -1052,14 +1009,12 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                             windowTargetBounds, launcherIconBounds, v,
                             dragLayerBounds[0], dragLayerBounds[1], hasSplashScreen,
                             floatingView.isDifferentFromAppIcon());
-                    mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd,
-                            DECELERATE_1_5);
-                    mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd,
-                            DECELERATE_1_5);
-                    mDy = new FloatProp(0, prop.dY, DECELERATE_1_5);
+                    mCropRectCenterY = new FloatProp(prop.cropCenterYStart, prop.cropCenterYEnd);
+                    mCropRectHeight = new FloatProp(prop.cropHeightStart, prop.cropHeightEnd);
+                    mDy = new FloatProp(0, prop.dY);
                     mIconScaleToFitScreen = new FloatProp(prop.initialAppIconScale,
                             prop.finalAppIconScale);
-                    float interpolatedPercent = DECELERATE_1_5.getInterpolation(percent);
+                    float interpolatedPercent = getDefaultInterpolator().getInterpolation(percent);
                     mCropRectHeight.value = Utilities.mapRange(interpolatedPercent,
                             prop.cropHeightStart, prop.cropHeightEnd);
                     mCropRectCenterY.value = Utilities.mapRange(interpolatedPercent,
@@ -1287,7 +1242,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
 
             // Window & widget background positioning bounds
             final FloatProp mDx = new FloatProp(widgetBackgroundBounds.centerX(),
-                    windowTargetBounds.centerX(), DECELERATE_1_5);
+                    windowTargetBounds.centerX(), mOpeningXInterpolator);
             final FloatProp mDy = new FloatProp(widgetBackgroundBounds.centerY(),
                     windowTargetBounds.centerY());
             final FloatProp mWidth = new FloatProp(widgetBackgroundBounds.width(),
