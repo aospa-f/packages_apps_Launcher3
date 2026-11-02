@@ -925,9 +925,27 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
             layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
             layoutParams.topMargin = 0;
-            layoutParams.bottomMargin = getResources().getDimensionPixelSize(
-                    R.dimen.all_apps_search_bar_bottom_margin);
+            layoutParams.bottomMargin = getSearchBarBottomMargin();
             mSearchContainer.setLayoutParams(layoutParams);
+        }
+    }
+
+    private int getSearchBarBottomMargin() {
+        return getResources().getDimensionPixelSize(
+                R.dimen.all_apps_search_bar_bottom_margin)
+                + Math.max(mInsets.bottom, mNavBarScrimHeight);
+    }
+
+    private void updateSearchBarBottomMargin() {
+        if (mSearchContainer == null || !isSearchBarAtBottom()) {
+            return;
+        }
+        if (mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams layoutParams) {
+            int bottomMargin = getSearchBarBottomMargin();
+            if (layoutParams.bottomMargin != bottomMargin) {
+                layoutParams.bottomMargin = bottomMargin;
+                mSearchContainer.setLayoutParams(layoutParams);
+            }
         }
     }
 
@@ -1143,12 +1161,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             mTouchHandler.handleTouchEvent(ev, mFastScrollerOffset);
             return true;
         }
-        if (isSearching()
-                && mActivityContext.getDragLayer().isEventOverView(getVisibleContainerView(), ev)) {
-            // if in search state, consume touch event.
-            return true;
-        }
-        return false;
+        // Consume touches that land on the all-apps background. Otherwise they fall through
+        // to the workspace behind this container and launch a home-screen app.
+        return isInAllApps();
     }
 
     /** The current active recycler view (A-Z list from one of the profiles, or search results). */
@@ -1227,6 +1242,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     @Override
     public void setInsets(Rect insets) {
         mInsets.set(insets);
+        updateSearchBarBottomMargin();
         DeviceProfile grid = mActivityContext.getDeviceProfile();
 
         applyAdapterSideAndBottomPaddings(grid);
@@ -1266,6 +1282,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     @Override
     public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
         mNavBarScrimHeight = computeNavBarScrimHeight(insets);
+        updateSearchBarBottomMargin();
         applyAdapterSideAndBottomPaddings(mActivityContext.getDeviceProfile());
         return super.dispatchApplyWindowInsets(insets);
     }
