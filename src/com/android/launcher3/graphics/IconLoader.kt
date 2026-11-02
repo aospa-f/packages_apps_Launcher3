@@ -129,7 +129,8 @@ constructor(
             if (mainIcon is AdaptiveIconDrawable) {
                 mainIcon
             } else if (
-                mainIcon.changingConfigurations and BaseIconFactory.CONFIG_HINT_NO_WRAP == 0
+                mainIcon.changingConfigurations and
+                    com.android.launcher3.icons.ThirdPartyIconUtils.CONFIG_HINT_NO_WRAP == 0
             ) {
                 // Wrap the main icon in AID
                 LauncherIcons.obtain(context).use { li -> li.wrapToAdaptiveIcon(mainIcon) }

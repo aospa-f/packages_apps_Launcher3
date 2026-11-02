@@ -2,6 +2,7 @@ package com.android.launcher3.customization;
 
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -61,6 +62,11 @@ class MetadataExtractor {
     String getLastUpdate() {
         return DateUtils.formatDateTime(mContext, mLastUpdate,
                 DateUtils.FORMAT_SHOW_WEEKDAY | DateUtils.FORMAT_SHOW_DATE);
+    }
+
+    Intent getMarketIntent() {
+        // The app-info sheet can link to the store; keep this disabled for now.
+        return null;
     }
 
     String getVersionName() {

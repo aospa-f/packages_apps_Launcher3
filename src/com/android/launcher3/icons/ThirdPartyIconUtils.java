@@ -10,7 +10,10 @@ import com.android.launcher3.icons.pack.IconPackManager;
 import com.android.launcher3.icons.pack.IconResolver;
 import com.android.launcher3.util.ComponentKey;
 
-class ThirdPartyIconUtils {
+public class ThirdPartyIconUtils {
+
+    /** Marks an icon as already themed, so IconLoader does not wrap it again. */
+    public static final int CONFIG_HINT_NO_WRAP = 1 << 30;
     static Drawable getByKey(Context context, ComponentKey key, int iconDpi,
                              IconResolver.DefaultDrawableProvider fallback) {
         IconResolver resolver = IconPackManager.get(context).resolve(key);
