@@ -287,6 +287,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
             // focused by default. It's added to end of the children list, so it needs to be
             // explicitly marked as focused by default.
             mSearchContainer.setFocusedByDefault(true);
+            if (isSearchBarAtBottom()) {
+                layoutSearchBarAtBottom();
+            }
         }
         mSearchUiManager = (SearchUiManager) mSearchContainer;
     }
@@ -730,7 +733,10 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
 
         removeCustomRules(rvContainer);
         removeCustomRules(getSearchRecyclerView());
-        if (isSearchBarFloating()) {
+        if (isSearchBarAtBottom()) {
+            layoutAboveSearchContainer(rvContainer, showTabs);
+            layoutAboveSearchContainer(getSearchRecyclerView(), /* tabs= */ false);
+        } else if (isSearchBarFloating()) {
             alignParentTop(rvContainer, showTabs);
             alignParentTop(getSearchRecyclerView(), /* tabs= */ false);
         } else {
@@ -773,7 +779,9 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         mAdditionalHeaderRows.forEach(row -> mHeader.onPluginConnected(row, mActivityContext));
 
         removeCustomRules(mHeader);
-        if (isSearchBarFloating()) {
+        if (isSearchBarAtBottom()) {
+            alignParentTop(mHeader, false /* includeTabsMargin */);
+        } else if (isSearchBarFloating()) {
             alignParentTop(mHeader, false /* includeTabsMargin */);
         } else {
             layoutBelowSearchContainer(mHeader, false /* includeTabsMargin */);
@@ -905,6 +913,36 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
         DeviceProfile dp = mActivityContext.getDeviceProfile();
         return dp.getAllAppsProfile().getLeftRightMargin()
                 + dp.getAllAppsIconStartMargin(mActivityContext);
+    }
+
+    private boolean isSearchBarAtBottom() {
+        return com.android.launcher3.LauncherPrefs.SEARCH_BAR_BOTTOM.get(
+                mActivityContext.asContext());
+    }
+
+    private void layoutSearchBarAtBottom() {
+        if (mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams layoutParams) {
+            layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+            layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+            layoutParams.topMargin = 0;
+            layoutParams.bottomMargin = getResources().getDimensionPixelSize(
+                    R.dimen.all_apps_search_bar_bottom_margin);
+            mSearchContainer.setLayoutParams(layoutParams);
+        }
+    }
+
+    private void layoutAboveSearchContainer(View v, boolean includeTabsMargin) {
+        if (!(v.getLayoutParams() instanceof RelativeLayout.LayoutParams)) {
+            return;
+        }
+
+        RelativeLayout.LayoutParams layoutParams = (LayoutParams) v.getLayoutParams();
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_TOP);
+        layoutParams.addRule(RelativeLayout.ABOVE, R.id.search_container_all_apps);
+        layoutParams.topMargin = includeTabsMargin
+                ? getContext().getResources().getDimensionPixelSize(
+                        R.dimen.all_apps_header_pill_height)
+                : 0;
     }
 
     private void layoutBelowSearchContainer(View v, boolean includeTabsMargin) {

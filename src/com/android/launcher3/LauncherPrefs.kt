@@ -263,6 +263,7 @@ constructor(@ApplicationContext private val encryptedContext: Context) {
 
         @JvmField val ALLAPPS_THEMED_ICONS = backedUpItem("pref_allapps_themed_icons", false)
         @JvmField val DRAWER_OPEN_KEYBOARD = backedUpItem("pref_drawer_open_keyboard", false)
+        @JvmField val SEARCH_BAR_BOTTOM = backedUpItem("pref_search_bar_bottom", true)
         @JvmField val FONT_SIZE = backedUpItem("pref_font_size", 100)
         @JvmField val ICON_SIZE = backedUpItem("pref_icon_size", 100)
         @JvmField val SHOW_DESKTOP_LABELS = backedUpItem("pref_desktop_show_labels", true)

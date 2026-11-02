@@ -18,6 +18,10 @@
     <string name="pref_themed_icons_title">Use themed icons in drawer</string>
     <string name="pref_themed_icons_summary">Follow themed icons used on home screen</string>
 
+    <!-- App drawer search bar position -->
+    <string name="search_bar_bottom_title">Search bar at bottom</string>
+    <string name="search_bar_bottom_summary">Put the app drawer search bar at the bottom. Turn off for the stock top position.</string>
+
     <!-- Application name -->
     <string name="aospa_app_name" translatable="false">Paranoid Launcher</string>
 
