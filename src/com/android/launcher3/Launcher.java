@@ -106,6 +106,7 @@ import android.animation.Animator;
 import android.animation.AnimatorSet;
 import android.animation.ValueAnimator;
 import android.annotation.TargetApi;
+import android.app.StatusBarManager;
 import android.appwidget.AppWidgetHostView;
 import android.appwidget.AppWidgetManager;
 import android.content.ActivityNotFoundException;
@@ -377,6 +378,13 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     protected long mLastTouchUpTime = -1;
     private boolean mTouchInProgress;
+    private static final int EDGE_SWIPE_WIDTH_DP = 24;
+    private static final int EDGE_SWIPE_THRESHOLD_DP = 72;
+    private float mEdgeSwipeStartX;
+    private float mEdgeSwipeStartY;
+    private boolean mEdgeSwipeFromLeft;
+    private boolean mEdgeSwipeEligible;
+    private boolean mEdgeSwipeTriggered;
 
     // New InstanceId is assigned to mAllAppsSessionLogId for each AllApps sessions.
     // When Launcher is not in AllApps state mAllAppsSessionLogId will be null.
@@ -1934,19 +1942,63 @@ public class Launcher extends StatefulActivity<LauncherState>
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
-        switch (ev.getAction()) {
+        switch (ev.getActionMasked()) {
             case MotionEvent.ACTION_DOWN:
                 mTouchInProgress = true;
+                trackEdgeSwipeDown(ev);
+                break;
+            case MotionEvent.ACTION_MOVE:
+                trackEdgeSwipeMove(ev);
                 break;
             case MotionEvent.ACTION_UP:
                 mLastTouchUpTime = SystemClock.uptimeMillis();
+                mEdgeSwipeEligible = false;
                 // Follow through
             case MotionEvent.ACTION_CANCEL:
                 mTouchInProgress = false;
+                mEdgeSwipeEligible = false;
                 break;
         }
         TestLogging.recordMotionEvent(TestProtocol.SEQUENCE_MAIN, "Touch event", ev);
         return super.dispatchTouchEvent(ev);
+    }
+
+    private void trackEdgeSwipeDown(MotionEvent ev) {
+        if (!isInState(LauncherState.NORMAL)) {
+            mEdgeSwipeEligible = false;
+            return;
+        }
+        float edge = EDGE_SWIPE_WIDTH_DP * getResources().getDisplayMetrics().density;
+        mEdgeSwipeFromLeft = ev.getX() < edge;
+        mEdgeSwipeEligible =
+                mEdgeSwipeFromLeft
+                || ev.getX() > getResources().getDisplayMetrics().widthPixels - edge;
+        mEdgeSwipeTriggered = false;
+        mEdgeSwipeStartX = ev.getX();
+        mEdgeSwipeStartY = ev.getY();
+    }
+
+    private void trackEdgeSwipeMove(MotionEvent ev) {
+        if (!mEdgeSwipeEligible || mEdgeSwipeTriggered) {
+            return;
+        }
+        float threshold =
+                EDGE_SWIPE_THRESHOLD_DP * getResources().getDisplayMetrics().density;
+        float dy = ev.getY() - mEdgeSwipeStartY;
+        float dx = Math.abs(ev.getX() - mEdgeSwipeStartX);
+        if (dy < threshold || dx > threshold / 2f) {
+            return;
+        }
+        mEdgeSwipeTriggered = true;
+        StatusBarManager statusBarManager = getSystemService(StatusBarManager.class);
+        if (statusBarManager == null) {
+            return;
+        }
+        if (mEdgeSwipeFromLeft) {
+            statusBarManager.expandNotificationsPanel();
+        } else {
+            statusBarManager.expandSettingsPanel(null);
+        }
     }
 
     @Override

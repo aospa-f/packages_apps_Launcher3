@@ -30,6 +30,8 @@
     <permission android:name="${applicationId}.permission.START_WIDGET_PICKER_ACTIVITY"
         android:protectionLevel="signature|privileged" />
 
+    <uses-permission android:name="android.permission.EXPAND_STATUS_BAR" />
+
     <application
         android:backupAgent="com.android.launcher3.LauncherBackupAgent"
         android:fullBackupOnly="true"
