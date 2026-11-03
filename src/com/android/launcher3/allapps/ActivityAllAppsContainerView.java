@@ -143,6 +143,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     private final SearchTransitionController mSearchTransitionController;
     private final Paint mHeaderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Rect mInsets = new Rect();
+    private int mGestureInsetsBottom = 0;
     private final AllAppsStore mAllAppsStore;
     private final RecyclerView.OnScrollListener mScrollListener =
             new RecyclerView.OnScrollListener() {
@@ -921,31 +922,52 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     }
 
     private void layoutSearchBarAtBottom() {
-        if (mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams layoutParams) {
-            layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
-            layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
-            layoutParams.topMargin = 0;
-            layoutParams.bottomMargin = getSearchBarBottomMargin();
-            mSearchContainer.setLayoutParams(layoutParams);
+        if (mSearchContainer == null) {
+            return;
         }
+        RelativeLayout.LayoutParams layoutParams = asRelativeLayoutParams(mSearchContainer);
+        layoutParams.addRule(RelativeLayout.ALIGN_PARENT_BOTTOM);
+        layoutParams.addRule(RelativeLayout.CENTER_HORIZONTAL);
+        layoutParams.topMargin = 0;
+        layoutParams.bottomMargin = getSearchBarBottomMargin();
+        mSearchContainer.setLayoutParams(layoutParams);
+        Log.d(TAG, "search bar layout: bottomMargin=" + layoutParams.bottomMargin
+                + " insetsBottom=" + mInsets.bottom
+                + " navBarScrim=" + mNavBarScrimHeight
+                + " gestureBottom=" + mGestureInsetsBottom);
+    }
+
+    private RelativeLayout.LayoutParams asRelativeLayoutParams(View view) {
+        ViewGroup.LayoutParams current = view.getLayoutParams();
+        if (current instanceof RelativeLayout.LayoutParams relative) {
+            return relative;
+        }
+        RelativeLayout.LayoutParams params = new RelativeLayout.LayoutParams(
+                current != null ? current.width : ViewGroup.LayoutParams.MATCH_PARENT,
+                current != null ? current.height : ViewGroup.LayoutParams.WRAP_CONTENT);
+        return params;
     }
 
     private int getSearchBarBottomMargin() {
+        int inset = Math.max(mInsets.bottom,
+                Math.max(mNavBarScrimHeight, mGestureInsetsBottom));
         return getResources().getDimensionPixelSize(
-                R.dimen.all_apps_search_bar_bottom_margin)
-                + Math.max(mInsets.bottom, mNavBarScrimHeight);
+                R.dimen.all_apps_search_bar_bottom_margin) + inset;
     }
 
     private void updateSearchBarBottomMargin() {
         if (mSearchContainer == null || !isSearchBarAtBottom()) {
             return;
         }
-        if (mSearchContainer.getLayoutParams() instanceof RelativeLayout.LayoutParams layoutParams) {
-            int bottomMargin = getSearchBarBottomMargin();
-            if (layoutParams.bottomMargin != bottomMargin) {
-                layoutParams.bottomMargin = bottomMargin;
-                mSearchContainer.setLayoutParams(layoutParams);
-            }
+        RelativeLayout.LayoutParams layoutParams = asRelativeLayoutParams(mSearchContainer);
+        int bottomMargin = getSearchBarBottomMargin();
+        if (layoutParams.bottomMargin != bottomMargin) {
+            layoutParams.bottomMargin = bottomMargin;
+            mSearchContainer.setLayoutParams(layoutParams);
+            Log.d(TAG, "search bar margin updated: bottomMargin=" + bottomMargin
+                    + " insetsBottom=" + mInsets.bottom
+                    + " navBarScrim=" + mNavBarScrimHeight
+                    + " gestureBottom=" + mGestureInsetsBottom);
         }
     }
 
@@ -1282,6 +1304,7 @@ public class ActivityAllAppsContainerView<T extends Context & ActivityContext>
     @Override
     public WindowInsets dispatchApplyWindowInsets(WindowInsets insets) {
         mNavBarScrimHeight = computeNavBarScrimHeight(insets);
+        mGestureInsetsBottom = insets.getInsets(WindowInsets.Type.mandatorySystemGestures()).bottom;
         updateSearchBarBottomMargin();
         applyAdapterSideAndBottomPaddings(mActivityContext.getDeviceProfile());
         return super.dispatchApplyWindowInsets(insets);
