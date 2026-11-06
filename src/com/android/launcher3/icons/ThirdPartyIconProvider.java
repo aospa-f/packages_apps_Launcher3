@@ -15,6 +15,8 @@ import com.android.launcher3.util.ComponentKey;
 
 import javax.inject.Inject;
 
+import static com.android.launcher3.icons.BaseIconFactory.CONFIG_HINT_NO_WRAP;
+
 @LauncherAppSingleton
 public class ThirdPartyIconProvider extends LauncherIconProvider {
 
@@ -47,8 +49,7 @@ public class ThirdPartyIconProvider extends LauncherIconProvider {
         if (icon == null) {
             return fallback.get();
         }
-        icon.setChangingConfigurations(icon.getChangingConfigurations()
-                | ThirdPartyIconUtils.CONFIG_HINT_NO_WRAP);
+        icon.setChangingConfigurations(icon.getChangingConfigurations() | CONFIG_HINT_NO_WRAP);
         return icon;
     }
 
@@ -65,11 +66,8 @@ public class ThirdPartyIconProvider extends LauncherIconProvider {
         super.updateSystemState();
         String pack = IconDatabase.getGlobal(mContext);
         if (!pack.isEmpty()) {
-            // A global icon pack overrides every icon, so the transient theme code must not
-            // be part of the cache key: it changes on resume and used to invalidate the whole
-            // icon cache, flashing default icons when returning home.
             mSystemState = mSystemState.withTheme(
-                    "pack:" + pack,
+                    mThemeManager.getIconState().getThemeCode() + ":" + pack,
                     mThemeManager.getIconState().isCircle());
         }
     }

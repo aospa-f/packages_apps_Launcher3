@@ -12,29 +12,12 @@ import com.android.launcher3.util.ComponentKey;
 
 public class IconDatabase {
 
-    private static volatile String sLastKnownGlobal;
-
     private static final String PREF_FILE_NAME = BuildConfig.APPLICATION_ID + ".ICON_DATABASE";
     public static final String KEY_ICON_PACK = "pref_icon_pack";
     public static final String VALUE_DEFAULT = "";
 
     public static String getGlobal(Context context) {
-        try {
-            String value = LauncherPrefs.getPrefs(context)
-                    .getString(KEY_ICON_PACK, VALUE_DEFAULT);
-            if (!VALUE_DEFAULT.equals(value)) {
-                sLastKnownGlobal = value;
-            }
-            return value;
-        } catch (IllegalStateException e) {
-            // Credential-encrypted storage is unavailable before the user unlocks.
-            // A transient unavailability must not fall back to the default pack: that
-            // flashes default icons on the workspace and in the icon cache.
-            String cached = sLastKnownGlobal;
-            android.util.Log.w("IconDatabase",
-                    "Icon pack prefs unavailable; cached=" + cached);
-            return cached != null ? cached : VALUE_DEFAULT;
-        }
+        return LauncherPrefs.getPrefs(context).getString(KEY_ICON_PACK, VALUE_DEFAULT);
     }
 
     public static String getGlobalLabel(Context context) {

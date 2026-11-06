@@ -22,11 +22,6 @@
     <string name="search_bar_bottom_title">Search bar at bottom</string>
     <string name="search_bar_bottom_summary">Put the app drawer search bar at the bottom. Turn off for the stock top position.</string>
 
-    <!-- Icon pack -->
-    <string name="icon_pack_summary">Use a third-party icon pack for home screen and app drawer icons</string>
-    <string name="placeholder_string" translatable="false">Loading...</string>
-    <string name="app_info_source_unknown">Unknown</string>
-
     <!-- Application name -->
     <string name="aospa_app_name" translatable="false">Paranoid Launcher</string>
 

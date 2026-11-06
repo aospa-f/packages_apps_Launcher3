@@ -10,19 +10,13 @@ import com.android.launcher3.icons.pack.IconPackManager;
 import com.android.launcher3.icons.pack.IconResolver;
 import com.android.launcher3.util.ComponentKey;
 
-public class ThirdPartyIconUtils {
-
-    /** Marks an icon as already themed, so IconLoader does not wrap it again. */
-    public static final int CONFIG_HINT_NO_WRAP = 1 << 30;
+class ThirdPartyIconUtils {
     static Drawable getByKey(Context context, ComponentKey key, int iconDpi,
                              IconResolver.DefaultDrawableProvider fallback) {
         IconResolver resolver = IconPackManager.get(context).resolve(key);
         Drawable icon = resolver == null
                 ? null
                 : resolver.getIcon(iconDpi, fallback);
-        if (icon == null) {
-            android.util.Log.d("ThirdPartyIcon", "no pack icon for " + key);
-        }
 
         // Icon pack clocks go first.
         if (icon != null && resolver.isClock()) {
