@@ -65,8 +65,11 @@ public class ThirdPartyIconProvider extends LauncherIconProvider {
         super.updateSystemState();
         String pack = IconDatabase.getGlobal(mContext);
         if (!pack.isEmpty()) {
+            // A global icon pack overrides every icon, so the transient theme code must not
+            // be part of the cache key: it changes on resume and used to invalidate the whole
+            // icon cache, flashing default icons when returning home.
             mSystemState = mSystemState.withTheme(
-                    mThemeManager.getIconState().getThemeCode() + ":" + pack,
+                    "pack:" + pack,
                     mThemeManager.getIconState().isCircle());
         }
     }
