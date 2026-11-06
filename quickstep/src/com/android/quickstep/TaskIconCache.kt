@@ -29,6 +29,7 @@ import androidx.core.graphics.drawable.toDrawable
 import com.android.launcher3.LauncherPrefs
 import com.android.launcher3.R
 import com.android.launcher3.Utilities
+import com.android.launcher3.customization.IconDatabase
 import com.android.launcher3.customization.IconDatabase.KEY_ICON_PACK
 import com.android.launcher3.concurrent.annotations.Ui
 import com.android.launcher3.dagger.ApplicationContext
@@ -41,6 +42,7 @@ import com.android.launcher3.icons.IconCache
 import com.android.launcher3.icons.cache.AppInfoCachingLogic
 import com.android.launcher3.pm.UserCache
 import com.android.launcher3.util.CancellableTask
+import com.android.launcher3.util.ComponentKey
 import com.android.launcher3.util.DaggerSingletonTracker
 import com.android.launcher3.util.Executors.MAIN_EXECUTOR
 import com.android.launcher3.util.Executors.SimpleThreadFactory
@@ -273,11 +275,32 @@ constructor(
         val key = task.key
 
         val user = UserHandle.of(key.userId)
+        val userInfo = UserCache.INSTANCE.get(context).getUserInfo(user)
+        val activityInfo =
+            PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
+
+        // Prefer the launcher icon cache (and therefore the icon pack) over the task
+        // description icon. The task icon is the app's default icon and is what made the
+        // recent-app icon in the taskbar flash unthemed while the dock was themed.
+        val iconPack = IconDatabase.getByComponent(context, ComponentKey(key.component, user))
+        if (activityInfo != null && iconPack.isNotEmpty()) {
+            val appInfo = activityInfo.applicationInfo
+            val request = ic.getIconLoadRequest(appInfo, appInfoCachingLogic)
+            return ic.iconFactory.use {
+                it.createBadgedIconBitmap(
+                    request.getIcon(activityInfo),
+                    IconOptions()
+                        .setUser(userInfo)
+                        .setInstantApp(appInfo.isInstantApp)
+                        .setExtractedColor(0)
+                        .setWrapperBackgroundColor(desc.primaryColor)
+                        .setSourceHint(request.sourceHint),
+                )
+            }
+        }
 
         // Load icon
         val icon = getIcon(desc, key.userId)
-        val userInfo = UserCache.INSTANCE.get(context).getUserInfo(user)
-
         if (icon != null) {
             return ic.iconFactory.use {
                 it.createBadgedIconBitmap(
@@ -290,10 +313,7 @@ constructor(
             }
         }
 
-        val activityInfo =
-            PackageManagerWrapper.getInstance().getActivityInfo(key.component, key.userId)
-                ?: return ic.getDefaultIcon(user)
-        val appInfo = activityInfo.applicationInfo
+        val appInfo = activityInfo?.applicationInfo ?: return ic.getDefaultIcon(user)
         val request = ic.getIconLoadRequest(appInfo, appInfoCachingLogic)
         return ic.iconFactory.use {
             it.createBadgedIconBitmap(

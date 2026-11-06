@@ -20,6 +20,9 @@ public class ThirdPartyIconUtils {
         Drawable icon = resolver == null
                 ? null
                 : resolver.getIcon(iconDpi, fallback);
+        if (icon == null) {
+            android.util.Log.d("ThirdPartyIcon", "no pack icon for " + key);
+        }
 
         // Icon pack clocks go first.
         if (icon != null && resolver.isClock()) {
