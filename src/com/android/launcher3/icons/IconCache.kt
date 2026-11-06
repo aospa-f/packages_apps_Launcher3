@@ -89,7 +89,7 @@ constructor(
     idp: InvariantDeviceProfile,
     @Named("ICONS_DB") dbFileName: String?,
     private val userManager: UserCache,
-    iconProvider: ThirdPartyIconProvider,
+    iconProvider: LauncherIconProvider,
     private val installSessionHelper: InstallSessionHelper,
     private val iconPool: IconPool,
     private val instantAppResolver: InstantAppResolver,

@@ -475,9 +475,7 @@ public class QuickstepTransitionManager implements OnDeviceProfileChangeListener
                 onEndCallback, mLauncher, MAIN_EXECUTOR);
         options.setOnAnimationAbortListener(endCallback);
         options.setOnAnimationFinishedListener(endCallback);
-        if (itemInfo != null) {
-            options.setLaunchCookie(StableViewInfo.toLaunchCookie(itemInfo));
-        }
+        options.setLaunchCookie(StableViewInfo.toLaunchCookie(itemInfo));
 
         // Prepare taskbar for animation synchronization. This needs to happen here before any
         // app transition is created.
